@@ -8,6 +8,7 @@ hook.Add("InitPostEntity", "gw_InitPostEntity", function()
     GAMEMODE.GWRound.GeneratedSpawnPointCount = 0
 end)
 
+
 function GWRound:RoundPreGame()
     self:SetRoundState(GW_ROUND_PRE_GAME)
     hook.Run("GWPreGame")
@@ -208,14 +209,45 @@ function GWRound:PostRound()
 
     self:UpdateSettings()
 
-    -- teamswap
-    for _, v in pairs(player.GetAll()) do
-        if v:Team() == GW_TEAM_SEEKING then
-            v:SetTeam(GW_TEAM_HIDING)
-        elseif v:Team() == GW_TEAM_HIDING then
-            v:SetTeam(GW_TEAM_SEEKING)
+    if self.TeamSwapMode == 0 then
+        -- teamswap
+        for _, v in pairs(player.GetAll()) do
+            if v:Team() == GW_TEAM_SEEKING then
+                v:SetTeam(GW_TEAM_HIDING)
+            elseif v:Team() == GW_TEAM_HIDING then
+                v:SetTeam(GW_TEAM_SEEKING)
+            end
+            v:KillSilent()
         end
-        v:KillSilent()
+    elseif self.TeamSwapMode == 1 then
+        --create a random team attribution respecting the ratio
+        -- Cache player lists
+        local team1Players = team.GetPlayers(GW_TEAM_HIDING)
+        local team2Players = team.GetPlayers(GW_TEAM_SEEKING)
+
+        -- Combine into a single list
+        local players = {}
+        table.move(team1Players, 1, #team1Players, 1, players)
+        table.move(team2Players, 1, #team2Players, #team1Players + 1, players)
+
+        local i = self.HiderSeekerRatio
+        while #players > 0 do
+            local randIndex  = math.random(1, #players)
+            print("random index : " .. randIndex)
+            local player = players[randIndex]
+            if i >= self.HiderSeekerRatio then
+                i = i - self.HiderSeekerRatio
+                player:SetTeam(GW_TEAM_SEEKING)
+            else
+                i = i + 1
+                player:SetTeam(GW_TEAM_HIDING)
+            end
+            player:KillSilent()
+            table.remove(players, randIndex)
+        end
+    else 
+        -- TODO: queue priorities attribution
+
     end
 
 end
@@ -253,8 +285,9 @@ function GWRound:UpdateSettings()
     self.HideDuration = GetConVar("gw_hideduration"):GetInt()
     self.PostRoundDuration = GetConVar("gw_postroundduration"):GetInt()
     self.MaxRounds = GetConVar("gw_maxrounds"):GetInt()
-    self.MinHiding = GetConVar("gw_minhiding"):GetInt()
-    self.MinSeeking = GetConVar("gw_minseeking"):GetInt()
+    self.MinPlayer = GetConVar("gw_minplayer"):GetInt()
+    self.HiderSeekerRatio = GetConVar("gw_hider_seeker_ratio"):GetFloat()
+    self.TeamSwapMode = GetConVar("gw_team_swaping_mode"):GetInt()
 
 end
 

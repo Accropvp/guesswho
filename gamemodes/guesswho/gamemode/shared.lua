@@ -89,6 +89,13 @@ function GM:PlayerShouldTakeDamage( ply, victim )
 end
 
 function GM:ShouldCollide( ent1, ent2 )
+    -- Players (seekers and hiders alike) pass through NPC walkers instead of bumping into them.
+    -- Touch detection for weapons below is distance based, so it keeps working without physical collision.
+    if (ent1:IsPlayer() and ent2:GetClass() == GW_WALKER_CLASS) or
+       (ent2:IsPlayer() and ent1:GetClass() == GW_WALKER_CLASS) then
+        return false
+    end
+
     if GetConVar( "gw_abilities_enabled" ):GetBool() and GetConVar("gw_touches_enabled"):GetBool() and GAMEMODE.GWRound:IsCurrentState(GW_ROUND_SEEK) then
         local hider, seeker
         if ent1:IsPlayer() and ent2:IsPlayer() then

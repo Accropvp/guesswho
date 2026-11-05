@@ -20,7 +20,8 @@ end
 
 function GWRound:RoundWaitForPlayers()
     -- do not start round without players or at least one player in each team
-    if team.NumPlayers(GW_TEAM_HIDING) < self.MinHiding or
+    if player.GetCount() < self.MinPlayer or
+        team.NumPlayers(GW_TEAM_HIDING) < self.MinHiding or
         team.NumPlayers(GW_TEAM_SEEKING) < self.MinSeeking then
         -- check again after half a second second
         timer.Simple(0.5, function() self:RoundWaitForPlayers() end)
@@ -288,6 +289,19 @@ function GWRound:UpdateSettings()
     self.MinPlayer = GetConVar("gw_minplayer"):GetInt()
     self.HiderSeekerRatio = GetConVar("gw_hider_seeker_ratio"):GetFloat()
     self.TeamSwapMode = GetConVar("gw_team_swaping_mode"):GetInt()
+
+    -- gw_minhiding / gw_minseeking were replaced by gw_minplayer and the hider to
+    -- seeker ratio, so derive the per team minimums from them instead of reading
+    -- convars that no longer exist.
+    local ratio = self.HiderSeekerRatio
+    if ratio <= 0 then ratio = 1 end
+
+    local minHiding = math.ceil(self.MinPlayer / (1 + ratio))
+    local minSeeking = math.ceil(self.MinPlayer * ratio / (1 + ratio))
+
+    -- still need someone on each team
+    self.MinHiding = math.max(1, minHiding)
+    self.MinSeeking = math.max(1, minSeeking)
 
 end
 

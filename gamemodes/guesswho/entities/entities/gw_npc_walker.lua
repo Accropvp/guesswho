@@ -240,7 +240,8 @@ function ENT:Think()
                               )
             local occupied = false
             for _, entInBox in pairs(entsInBox) do
-                if (entInBox:GetClass() == GW_WALKER_CLASS) and (entInBox ~= self) or entInBox:IsPlayer() then
+                -- Players no longer collide with walkers, so only other walkers can keep us stuck
+                if (entInBox:GetClass() == GW_WALKER_CLASS) and (entInBox ~= self) then
                     occupied = true
                 end
             end

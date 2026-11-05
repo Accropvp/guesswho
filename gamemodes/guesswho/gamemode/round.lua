@@ -2,6 +2,95 @@ local GWRound = {}
 
 GM.GWRound = GWRound
 
+-- A round needs at least one seeker and one hider
+GW_MIN_PLAYERS = 2
+-- Upper bound for one rotation pass: with a big roster C(n, k) explodes, so we cap the
+-- number of seeker groups we deal out per pass instead of enumerating all of them
+GW_MAX_COMBINATIONS = 512
+
+-- Binomial coefficient C(n, k), cut off as soon as it passes cap so we never build
+-- absurdly large numbers
+local function Binomial(n, k, cap)
+    if n < 1 or k < 1 or k > n then return 0 end
+
+    k = math.min(k, n - k)
+    local value = 1
+
+    for i = 1, k do
+        value = value * (n - k + i) / i
+        if value > cap then return cap + 1 end
+    end
+
+    return math.floor(value + 0.5)
+end
+
+local function ShuffleList(list)
+    for i = #list, 2, -1 do
+        local j = math.random(i)
+        list[i], list[j] = list[j], list[i]
+    end
+
+    return list
+end
+
+-- Every k element subset of {1..n}, as sorted lists of 1 based indices, in
+-- lexicographic order, never returning more than GW_MAX_COMBINATIONS entries
+local function BuildCombinations(n, k)
+    local combinations = {}
+
+    if k < 1 or k > n then return combinations end
+
+    local index = {}
+    for i = 1, k do index[i] = i end
+
+    while true do
+        local combination = {}
+        for i = 1, k do combination[i] = index[i] end
+        table.insert(combinations, combination)
+
+        if #combinations >= GW_MAX_COMBINATIONS then return combinations end
+
+        -- step to the next combination
+        local i = k
+        while i > 0 and index[i] == n - k + i do i = i - 1 end
+        if i == 0 then return combinations end
+
+        index[i] = index[i] + 1
+        for j = i + 1, k do index[j] = index[j - 1] + 1 end
+    end
+end
+
+-- Fallback for rosters with more possible seeker groups than a pass is worth:
+-- GW_MAX_COMBINATIONS unique groups picked at random
+local function BuildRandomCombinations(n, k)
+    local combinations, seen = {}, {}
+    local attempts = 0
+
+    while #combinations < GW_MAX_COMBINATIONS and attempts < GW_MAX_COMBINATIONS * 10 do
+        attempts = attempts + 1
+
+        -- k distinct indices, taken with a partial fisher-yates shuffle
+        local pool = {}
+        for i = 1, n do pool[i] = i end
+        for i = 1, k do
+            local j = math.random(i, n)
+            pool[i], pool[j] = pool[j], pool[i]
+        end
+
+        local combination = {}
+        for i = 1, k do combination[i] = pool[i] end
+        table.sort(combination)
+
+        local key = table.concat(combination, ",")
+        if not seen[key] then
+            seen[key] = true
+            table.insert(combinations, combination)
+        end
+    end
+
+    return combinations
+end
+
 hook.Add("InitPostEntity", "gw_InitPostEntity", function()
     GAMEMODE.GWRound:UpdateSettings()
     GAMEMODE.GWRound:RoundPreGame()
@@ -19,10 +108,11 @@ function GWRound:RoundPreGame()
 end
 
 function GWRound:RoundWaitForPlayers()
-    -- do not start round without players or at least one player in each team
-    if player.GetCount() < self.MinPlayer or
-        team.NumPlayers(GW_TEAM_HIDING) < self.MinHiding or
-        team.NumPlayers(GW_TEAM_SEEKING) < self.MinSeeking then
+    local roster = self:GetTeamRoster()
+
+    -- do not start a round without enough players: the seeker rotation needs at least
+    -- one seeker and one hider, and the configured minimum player count
+    if #roster < math.max(self.MinPlayer, GW_MIN_PLAYERS) then
         -- check again after half a second second
         timer.Simple(0.5, function() self:RoundWaitForPlayers() end)
         -- clear remaning npcs to save recources
@@ -31,6 +121,9 @@ function GWRound:RoundWaitForPlayers()
         self:SetRoundState(GW_ROUND_WAITING_PLAYERS)
         return
     end
+
+    -- hand out this round's seekers before anyone can spawn
+    self:AssignSeekerRotation()
 
     self:RoundCreateWalkers()
 
@@ -209,48 +302,157 @@ function GWRound:PostRound()
     hook.Run("GWPostRound")
 
     self:UpdateSettings()
+    -- teams are not swapped here any more: the seeker rotation assigns them when the
+    -- next round starts (see AssignSeekerRotation)
 
-    if self.TeamSwapMode == 0 then
-        -- teamswap
-        for _, v in pairs(player.GetAll()) do
-            if v:Team() == GW_TEAM_SEEKING then
-                v:SetTeam(GW_TEAM_HIDING)
-            elseif v:Team() == GW_TEAM_HIDING then
-                v:SetTeam(GW_TEAM_SEEKING)
-            end
-            v:KillSilent()
+end
+
+-- Players currently taking part in the game, ordered by a stable key so the rotation
+-- is not at the mercy of join order
+function GWRound:GetTeamRoster()
+    local roster = {}
+
+    for _, ply in pairs(player.GetAll()) do
+        local plyTeam = ply:Team()
+        if plyTeam == GW_TEAM_HIDING or plyTeam == GW_TEAM_SEEKING then
+            table.insert(roster, ply)
         end
-    elseif self.TeamSwapMode == 1 then
-        --create a random team attribution respecting the ratio
-        -- Cache player lists
-        local team1Players = team.GetPlayers(GW_TEAM_HIDING)
-        local team2Players = team.GetPlayers(GW_TEAM_SEEKING)
-
-        -- Combine into a single list
-        local players = {}
-        table.move(team1Players, 1, #team1Players, 1, players)
-        table.move(team2Players, 1, #team2Players, #team1Players + 1, players)
-
-        local i = self.HiderSeekerRatio
-        while #players > 0 do
-            local randIndex  = math.random(1, #players)
-            print("random index : " .. randIndex)
-            local player = players[randIndex]
-            if i >= self.HiderSeekerRatio then
-                i = i - self.HiderSeekerRatio
-                player:SetTeam(GW_TEAM_SEEKING)
-            else
-                i = i + 1
-                player:SetTeam(GW_TEAM_HIDING)
-            end
-            player:KillSilent()
-            table.remove(players, randIndex)
-        end
-    else 
-        -- TODO: queue priorities attribution
-
     end
 
+    table.sort(roster, function(a, b)
+        return GWRound:GetPlayerRosterKey(a) < GWRound:GetPlayerRosterKey(b)
+    end)
+
+    return roster
+end
+
+-- Unique, stable per connected player. Bots share a SteamID so their entity index is
+-- part of their key, a human keeps the same key over a reconnect.
+function GWRound:GetPlayerRosterKey(ply)
+    if ply:IsBot() then return "bot:" .. ply:EntIndex() end
+    return "sid:" .. tostring(ply:SteamID64())
+end
+
+function GWRound:GetRosterKeys(roster)
+    local keys = {}
+    for _, ply in pairs(roster) do table.insert(keys, self:GetPlayerRosterKey(ply)) end
+    return keys
+end
+
+function GWRound:RosterChanged(roster)
+    if not self.SeekerRosterKeys then return true end
+
+    local keys = self:GetRosterKeys(roster)
+    if #keys ~= #self.SeekerRosterKeys then return true end
+
+    for i = 1, #keys do
+        if keys[i] ~= self.SeekerRosterKeys[i] then return true end
+    end
+
+    return false
+end
+
+-- Start a fresh pass over the possible seeker groups for the current roster
+function GWRound:BuildSeekerCycle(roster, seekerCount)
+    local playerCount = #roster
+    local possible = Binomial(playerCount, seekerCount, GW_MAX_COMBINATIONS)
+
+    if possible <= GW_MAX_COMBINATIONS then
+        -- full binomial cycle: every possible seeker group exactly once
+        self.SeekerCycle = ShuffleList(BuildCombinations(playerCount, seekerCount))
+    else
+        -- too many possible groups to play them all, sample a pass instead
+        self.SeekerCycle = ShuffleList(BuildRandomCombinations(playerCount, seekerCount))
+    end
+
+    self.SeekerRosterKeys = self:GetRosterKeys(roster)
+    self.SeekerCycleSeekers = seekerCount
+    self.SeekerCycleIndex = 0
+    self.SeekerCyclePass = (self.SeekerCyclePass or 0) + 1
+
+    local possibleText = possible > GW_MAX_COMBINATIONS and
+                             (GW_MAX_COMBINATIONS .. "+") or tostring(possible)
+
+    MsgN("GW Seeker rotation, pass ", self.SeekerCyclePass, ": ", playerCount, " players, ",
+         seekerCount, " seekers, ", possibleText, " possible seeker groups, dealing ",
+         #self.SeekerCycle, " of them.")
+end
+
+-- Pick this round's seekers out of the rotating list of seeker groups and put every
+-- other player on the hiding team
+function GWRound:AssignSeekerRotation()
+    local roster = self:GetTeamRoster()
+    local playerCount = #roster
+
+    if playerCount < GW_MIN_PLAYERS then
+        MsgN("GW Seeker rotation skipped, not enough players taking part.")
+        return false
+    end
+
+    -- someone always has to hide, so the seeker slots can never take the whole server
+    local seekerCount = math.Clamp(self.SeekerCount, 1, playerCount - 1)
+    if seekerCount < self.SeekerCount then
+        PrintMessage(HUD_PRINTTALK, "Not enough players for " .. self.SeekerCount ..
+                                       " seekers, using " .. seekerCount .. ".")
+    end
+
+    if self:RosterChanged(roster) or not self.SeekerCycle or #self.SeekerCycle == 0 or
+        self.SeekerCycleSeekers ~= seekerCount then
+        -- the old pass refers to players that are not here any more (or the seeker
+        -- count changed), so it has to be rebuilt
+        self:BuildSeekerCycle(roster, seekerCount)
+    elseif self.SeekerCycleIndex >= #self.SeekerCycle then
+        -- pass dealt out completely, start the next one
+        self:BuildSeekerCycle(roster, seekerCount)
+
+        -- do not deal the same seeker group twice in a row
+        if #self.SeekerCycle > 1 and
+            self.LastSeekerGroupKey == table.concat(self.SeekerCycle[1], ",") then
+            self.SeekerCycle[1], self.SeekerCycle[2] = self.SeekerCycle[2], self.SeekerCycle[1]
+        end
+    end
+
+    self.SeekerCycleIndex = self.SeekerCycleIndex + 1
+    local seekerGroup = self.SeekerCycle[self.SeekerCycleIndex]
+
+    if not seekerGroup then
+        MsgN("GW Seeker rotation failed, empty seeker cycle.")
+        return false
+    end
+
+    self.LastSeekerGroupKey = table.concat(seekerGroup, ",")
+
+    local seekers = {}
+    for _, rosterIndex in pairs(seekerGroup) do
+        local seeker = roster[rosterIndex]
+        if IsValid(seeker) then seekers[seeker] = true end
+    end
+
+    local seekerNames = {}
+
+    for _, ply in pairs(player.GetAll()) do
+        local plyTeam = ply:Team()
+        if plyTeam == GW_TEAM_HIDING or plyTeam == GW_TEAM_SEEKING then
+            local isSeeker = seekers[ply] ~= nil
+            if isSeeker then table.insert(seekerNames, ply:Nick()) end
+            ply:SetTeam(isSeeker and GW_TEAM_SEEKING or GW_TEAM_HIDING)
+            ply:KillSilent()
+        end
+    end
+
+    if #seekerNames > 0 then
+        PrintMessage(HUD_PRINTTALK, "Seekers this round: " .. table.concat(seekerNames, ", "))
+    end
+
+    MsgN("GW Seeker rotation, pass ", (self.SeekerCyclePass or 0), ", group ",
+         self.SeekerCycleIndex, "/", #self.SeekerCycle, ": ", table.concat(seekerNames, ", "))
+
+    return true
+end
+
+function GWRound:IsRoundActive()
+    return self:IsCurrentState(GW_ROUND_CREATING_NPCS) or self:IsCurrentState(GW_ROUND_HIDE) or
+               self:IsCurrentState(GW_ROUND_SEEK)
 end
 
 function GWRound:SpawnNPCWave()
@@ -287,21 +489,12 @@ function GWRound:UpdateSettings()
     self.PostRoundDuration = GetConVar("gw_postroundduration"):GetInt()
     self.MaxRounds = GetConVar("gw_maxrounds"):GetInt()
     self.MinPlayer = GetConVar("gw_minplayer"):GetInt()
-    self.HiderSeekerRatio = GetConVar("gw_hider_seeker_ratio"):GetFloat()
-    self.TeamSwapMode = GetConVar("gw_team_swaping_mode"):GetInt()
+    self.SeekerCount = math.max(1, GetConVar("gw_seekercount"):GetInt())
 
-    -- gw_minhiding / gw_minseeking were replaced by gw_minplayer and the hider to
-    -- seeker ratio, so derive the per team minimums from them instead of reading
-    -- convars that no longer exist.
-    local ratio = self.HiderSeekerRatio
-    if ratio <= 0 then ratio = 1 end
-
-    local minHiding = math.ceil(self.MinPlayer / (1 + ratio))
-    local minSeeking = math.ceil(self.MinPlayer * ratio / (1 + ratio))
-
-    -- still need someone on each team
-    self.MinHiding = math.max(1, minHiding)
-    self.MinSeeking = math.max(1, minSeeking)
+    -- the seeker slots per round are fixed by gw_seekercount and handed out by the
+    -- rotation, so a playable round just needs one player left on each team
+    self.MinHiding = 1
+    self.MinSeeking = 1
 
 end
 

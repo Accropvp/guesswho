@@ -17,21 +17,13 @@
 		}
 		2
 		{
-			"name"		"gw_hider_seeker_ratio"
-			"text"		"ratio of hider over seeker"
-			"help"		"set the ratio of the hider over seeker eg: if the value is 5/3 then there will be 5 hider for 3 seeker"
+			"name"		"gw_seekercount"
+			"text"		"Seekers per round"
+			"help"		"How many seekers each round, everyone else who takes part is hiding. The seeker group rotates through the possible combinations of players."
 			"type"		"Numeric"
-			"default"	"1.0"
+			"default"	"2"
 		}
 		3
-		{
-			"name"		"gw_team_swaping_mode"
-			"text"		"mode of team switch"
-			"help"		"0 : just swap teams for everyone ; 1 : randomly change team ; 2 : change teams with priorities"
-			"type"		"Numeric"
-			"default"	"1"
-		}
-		4
 		{
 			"name"		"gw_maxrounds"
 			"text"		"Amount of rounds"
@@ -39,7 +31,7 @@
 			"type"		"Numeric"
 			"default"	"8"
 		}
-		5
+		4
 		{
 			"name"		"gw_basewalkeramount"
 			"text"		"The base amount of NPCs"
@@ -47,7 +39,7 @@
 			"type"		"Numeric"
 			"default"	"13"
 		}
-		6
+		5
 		{
 			"name"		"gw_pregameduration"
 			"text"		"The delay after map change"
@@ -55,7 +47,7 @@
 			"type"		"Numeric"
 			"default"	"20"
 		}
-		7
+		6
 		{
 			"name"		"gw_roundduration"
 			"text"		"The round duration"
@@ -63,7 +55,7 @@
 			"type"		"Numeric"
 			"default"	"300"
 		}
-		8
+		7
 		{
 			"name"		"gw_hideduration"
 			"text"		"The hide duration"
@@ -71,7 +63,7 @@
 			"type"		"Numeric"
 			"default"	"30"
 		}
-		9
+		8
 		{
 			"name"		"gw_postroundduration"
 			"text"		"The post round duration"
@@ -79,7 +71,7 @@
 			"type"		"Numeric"
 			"default"	"5"
 		}
-		10
+		9
 		{
 			"name"		"gw_damageonfailguess"
 			"text"		"Damage on Fail guess"
@@ -87,7 +79,7 @@
 			"type"		"Numeric"
 			"default"	"10"
 		}
-		11
+		10
 		{
 			"name"		"gw_taunt_voice_enabled"
 			"text"		"Voice taunts enabled"
@@ -95,7 +87,7 @@
 			"type"		"CheckBox"
 			"default"	"1"
 		}
-		12
+		11
 		{
 			"name"		"gw_taunt_voice_seeker_enabled"
 			"text"		"Voice taunts seeker enabled"
@@ -103,7 +95,7 @@
 			"type"		"CheckBox"
 			"default"	"0"
 		}
-		13
+		12
 		{
 			"name"		"gw_taunt_voice_cooldown"
 			"text"		"Voice taunts cooldown"
@@ -111,7 +103,7 @@
 			"type"		"Numeric"
 			"default"	"10"
 		}
-		14
+		13
 		{
 			"name"		"gw_taunt_body_enabled"
 			"text"		"Body taunts enabled"
@@ -119,7 +111,7 @@
 			"type"		"CheckBox"
 			"default"	"1"
 		}
-		15
+		14
 		{
 			"name"		"gw_walkerperplayer"
 			"text"		"Extra NPCs per player."
@@ -127,7 +119,7 @@
 			"type"		"Numeric"
 			"default"	"1.20"
 		}
-		16
+		15
 		{
 			"name"		"gw_abilities_enabled"
 			"text"		"Enable abilities"
@@ -135,7 +127,7 @@
 			"type"		"CheckBox"
 			"default"	"1"
 		}
-		17
+		16
 		{
 			"name"		"gw_disguise_seeker"
 			"text"		"Disguise seekers"
@@ -143,7 +135,7 @@
 			"type"		"CheckBox"
 			"default"	"0"
 		}
-		18
+		17
 		{
 			"name"		"gw_changemodel_hiding"
 			"text"		"Allow model change"
@@ -151,7 +143,7 @@
 			"type"		"CheckBox"
 			"default"	"1"
 		}
-		19
+		18
 		{
 			"name"		"gw_target_finder_enabled"
 			"text"		"Target Finder"
@@ -159,7 +151,7 @@
 			"type"		"CheckBox"
 			"default"	"0"
 		}
-		20
+		19
 		{
 			"name"		"gw_target_finder_threshold"
 			"text"		"Target Finder Threshold"
@@ -167,7 +159,7 @@
 			"type"		"Numeric"
 			"default"	"700"
 		}
-		21
+		20
 		{
 			"name"		"gw_touches_enabled"
 			"text"		"Touch for Weapon"
@@ -175,7 +167,7 @@
 			"type"		"CheckBox"
 			"default"	"1"
 		}
-		22
+		21
 		{
 			"name"		"gw_touches_required"
 			"text"		"Touches required"
@@ -183,7 +175,7 @@
 			"type"		"Numeric"
 			"default"	"3"
 		}
-		23
+		22
 		{
 			"name"		"gw_propfreeze_enabled"
 			"text"		"Freeze props"
@@ -191,7 +183,7 @@
 			"type"		"CheckBox"
 			"default"	"0"
 		}
-		24
+		23
 		{
 			"name"		"gw_hiding_walk_speed"
 			"text"		"Hiding Walk Speed"
@@ -199,7 +191,7 @@
 			"type"		"Numeric"
 			"default"	"100"
 		}
-		25
+		24
 		{
 			"name"		"gw_hiding_run_speed"
 			"text"		"Hiding Run Speed"
@@ -207,7 +199,7 @@
 			"type"		"Numeric"
 			"default"	"200"
 		}
-		26
+		25
 		{
 			"name"		"gw_seeker_walk_speed"
 			"text"		"Seeker Walk Speed"
@@ -215,7 +207,7 @@
 			"type"		"Numeric"
 			"default"	"100"
 		}
-		27
+		26
 		{
 			"name"		"gw_seeker_run_speed"
 			"text"		"Seeker Run Speed"
@@ -223,7 +215,7 @@
 			"type"		"Numeric"
 			"default"	"200"
 		}
-		28
+		27
 		{
 			"name"		"gw_double_jump_enabled"
 			"text"		"Double Jump"

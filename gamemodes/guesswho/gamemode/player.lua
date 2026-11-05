@@ -265,14 +265,11 @@ function GM:PlayerCanJoinTeam( ply, teamid )
         return false
     end
 
-    if teamid == GW_TEAM_SEEKING then
-        if team.NumPlayers( GW_TEAM_SEEKING ) > team.NumPlayers( GW_TEAM_HIDING ) or (ply:Team() == GW_TEAM_HIDING and team.NumPlayers( GW_TEAM_SEEKING ) == team.NumPlayers( GW_TEAM_HIDING )) then
-            return false
-        end
-    elseif teamid == GW_TEAM_HIDING then
-        if team.NumPlayers( GW_TEAM_HIDING ) > team.NumPlayers( GW_TEAM_SEEKING ) or (ply:Team() == GW_TEAM_SEEKING and team.NumPlayers( GW_TEAM_SEEKING ) == team.NumPlayers( GW_TEAM_HIDING )) then
-            return false
-        end
+    -- the seeker slots per round are fixed by gw_seekercount and handed out by the
+    -- rotation, so they can only be taken between rounds
+    if teamid == GW_TEAM_SEEKING and GAMEMODE.GWRound:IsRoundActive() then
+        ply:ChatPrint( "Seeker slots are handed out by the round rotation, you can only join the Hiders while a round is running." )
+        return false
     end
 
     return true
@@ -333,7 +330,18 @@ function GM:PlayerInitialSpawn( pl )
     pl:SetTeam( TEAM_UNASSIGNED )
 
     if ( GAMEMODE.TeamBased ) then
-        pl:ConCommand( "gm_showteam" )
+        if GAMEMODE.GWRound:IsRoundActive() then
+            -- late joiners go to the hiders, the seeker rotation folds them into the
+            -- teams for the next round
+            timer.Simple( 2, function()
+                if IsValid( pl ) and pl:Team() ~= GW_TEAM_HIDING and pl:Team() ~= GW_TEAM_SEEKING then
+                    pl:SetTeam( GW_TEAM_HIDING )
+                    pl:ChatPrint( "You joined the Hiders, the seeker rotation assigns the seekers again next round." )
+                end
+            end )
+        else
+            pl:ConCommand( "gm_showteam" )
+        end
     end
 
     --sync endtime with clients that connected

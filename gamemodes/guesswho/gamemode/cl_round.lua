@@ -6,6 +6,11 @@ function GWRound:GetRoundState() return self.RoundState end
 
 function GWRound:IsCurrentState(state) return self.RoundState == state end
 
+function GWRound:IsRoundActive()
+    return self:IsCurrentState(GW_ROUND_CREATING_NPCS) or self:IsCurrentState(GW_ROUND_HIDE) or
+               self:IsCurrentState(GW_ROUND_SEEK)
+end
+
 function GWRound:GetRoundLabel() return self.RoundLabel end
 
 function GWRound:SetRoundLabel( lbl )

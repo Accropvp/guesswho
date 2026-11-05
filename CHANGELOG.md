@@ -1,3 +1,11 @@
+# Unreleased
+
+- Players, seekers and hiders alike, no longer collide with NPC walkers. They walk through them, and touching a hider still works because the touch check is distance based.
+- Replaced the hider to seeker ratio and the team swapping mode cvars with a single seeker count, `gw_seekercount`.
+- The seekers of a round are now dealt by a rotation: every possible group of `gw_seekercount` seekers out of everyone taking part is used exactly once per pass (sampled without repeats for big lobbies), and the same group is never dealt twice in a row.
+- Players joining during a round join the hiders and are folded into the rotation for the next round. Seeker slots can only be taken between rounds.
+- Fixed rounds never starting because the minimum player counts per team were never set.
+
 # 2.2.d (Bugfix)
 
 - Fixed some issues caused by the latest gmod update (August 2020 update)

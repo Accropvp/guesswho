@@ -34,6 +34,8 @@ local function CreateTeamJoinButton(teamID, teamLangKey, parent, offsetX, offset
         if GAMEMODE:IsBalancedToJoin(teamID) then
             GAMEMODE:HideTeam()
             RunConsoleCommand("changeteam", teamID)
+        elseif teamID == GW_TEAM_SEEKING then
+            LocalPlayer():ChatPrint("Seeker slots are handed out by the round rotation, you can take one between rounds.")
         end
     end
     TeamButton:SetText("")
@@ -276,19 +278,12 @@ function GM:IsBalancedToJoin(teamid)
 
     if LocalPlayer():Team() == teamid then return true end
 
-    if teamid == GW_TEAM_SEEKING then
-        if team.NumPlayers(GW_TEAM_SEEKING) > team.NumPlayers(GW_TEAM_HIDING) or
-            (LocalPlayer():Team() == GW_TEAM_HIDING and
-                team.NumPlayers(GW_TEAM_SEEKING) == team.NumPlayers(GW_TEAM_HIDING)) then
-            return false
-        end
-    elseif teamid == GW_TEAM_HIDING then
-        if team.NumPlayers(GW_TEAM_HIDING) > team.NumPlayers(GW_TEAM_SEEKING) or
-            (LocalPlayer():Team() == GW_TEAM_SEEKING and
-                team.NumPlayers(GW_TEAM_SEEKING) == team.NumPlayers(GW_TEAM_HIDING)) then
-            return false
-        end
+    -- the seeker slots per round are fixed (gw_seekercount) and handed out by the
+    -- server's rotation, they can only be taken between rounds
+    if teamid == GW_TEAM_SEEKING and GAMEMODE.GWRound:IsRoundActive() then
+        return false
     end
+
     return true
 end
 

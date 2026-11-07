@@ -1,6 +1,11 @@
 AddCSLuaFile()
 
-local Behaviour = include("gw_behaviour_tree_lib.lua")
+-- The behaviour tree library used to sit next to this script, in entities/entities, where
+-- GMod tried to load it as an entity definition and complained about it missing the Type
+-- and Base keys. It now ships with the gamemode and shared.lua loads it on both realms, so
+-- the global is normally already there; the include is only used when this script happens
+-- to run before the gamemode files.
+local Behaviour = GW_behaviour_tree_lib or include("gamemodes/guesswho/gamemode/libs/gw_behaviour_tree_lib.lua")
 
 ENT.Base = "base_nextbot"
 

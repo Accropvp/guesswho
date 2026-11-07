@@ -181,7 +181,7 @@
 			"text"		"Freeze props"
 			"help"		"Shoud props freeze or not."
 			"type"		"CheckBox"
-			"default"	"0"
+			"default"	"1"
 		}
 		23
 		{

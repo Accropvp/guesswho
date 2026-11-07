@@ -8,6 +8,7 @@ AddCSLuaFile("sh_animations.lua")
 AddCSLuaFile("sh_config.lua")
 AddCSLuaFile("sh_taunts.lua")
 AddCSLuaFile("sh_notifications.lua")
+AddCSLuaFile("libs/gw_behaviour_tree_lib.lua")
 
 --translations
 for _,locale in pairs(file.Find("gamemodes/guesswho/gamemode/lang/*", "GAME")) do

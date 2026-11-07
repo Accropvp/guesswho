@@ -5,6 +5,9 @@
 - The seekers of a round are now dealt by a rotation: every possible group of `gw_seekercount` seekers out of everyone taking part is used exactly once per pass (sampled without repeats for big lobbies), and the same group is never dealt twice in a row.
 - Players joining during a round join the hiders and are folded into the rotation for the next round. Seeker slots can only be taken between rounds.
 - Fixed rounds never starting because the minimum player counts per team were never set.
+- The settings that were only listed in `guesswho.txt` are now also created in `shared.lua`, so a dedicated server that never applied the spawn menu settings no longer errors when the gamemode reads a cvar that does not exist. The defaults are unchanged, except for prop freezing.
+- Props are frozen by default now, `gw_propfreeze_enabled` defaults to 1. A server or listen server that already stored a value for it keeps the stored value.
+- Moved the walker behaviour tree library from `entities/entities` to `gamemode/libs`, so GMod no longer tries to load it as an entity and complains that it is missing the Type and Base keys.
 
 # 2.2.d (Bugfix)
 
